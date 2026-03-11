@@ -20,8 +20,10 @@ class SettingsScreen extends StatelessWidget {
           'Settings',
           style: GoogleFonts.poppins(
             fontWeight: FontWeight.bold,
+            color: Colors.white
           ),
         ),
+        centerTitle: true,
         backgroundColor: Colors.grey.shade800,
         elevation: 0,
       ),
