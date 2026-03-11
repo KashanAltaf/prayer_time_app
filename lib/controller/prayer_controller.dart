@@ -4,10 +4,19 @@ import 'package:get/get.dart';
 import 'package:prayer_time_app/model/prayer_model.dart';
 import 'package:prayer_time_app/repository/prayer_repository.dart';
 import 'package:prayer_time_app/controller/location_controller.dart';
+import 'package:prayer_time_app/controller/settings_controller.dart';
 
 class PrayerController extends GetxController {
   final _repo = PrayerRepository();
   final _locationController = Get.find<LocationController>();
+  
+  SettingsController? get _settingsController {
+    try {
+      return Get.find<SettingsController>();
+    } catch (e) {
+      return null;
+    }
+  }
 
   final Rx<PrayerModel?> prayerData = Rx<PrayerModel?>(null);
   final RxBool isLoading = false.obs;
@@ -34,6 +43,48 @@ class PrayerController extends GetxController {
       }
     });
     
+    // Listen for settings changes and refresh prayer times
+    if (_settingsController != null) {
+      ever(_settingsController!.selectedMethod, (_) {
+        if (_locationController.latitude.value != 0.0 &&
+            _locationController.longitude.value != 0.0) {
+          fetchPrayerTimes();
+        }
+      });
+      
+      ever(_settingsController!.selectedSchool, (_) {
+        if (_locationController.latitude.value != 0.0 &&
+            _locationController.longitude.value != 0.0) {
+          fetchPrayerTimes();
+        }
+      });
+      
+      // Listen for GPS toggle changes
+      ever(_settingsController!.useGpsLocation, (_) {
+        // Location will be updated by LocationController, which will trigger prayer fetch
+        Future.delayed(const Duration(milliseconds: 500), () {
+          if (_locationController.latitude.value != 0.0 &&
+              _locationController.longitude.value != 0.0) {
+            fetchPrayerTimes();
+          }
+        });
+      });
+      
+      // Listen for city selection changes
+      ever(_settingsController!.selectedCity, (_) {
+        if (!_settingsController!.useGpsLocation.value &&
+            _settingsController!.selectedCity.value != null) {
+          // Location will be updated by LocationController, which will trigger prayer fetch
+          Future.delayed(const Duration(milliseconds: 500), () {
+            if (_locationController.latitude.value != 0.0 &&
+                _locationController.longitude.value != 0.0) {
+              fetchPrayerTimes();
+            }
+          });
+        }
+      });
+    }
+    
     // Initial fetch attempt
     _tryFetchPrayerTimes();
   }
@@ -53,7 +104,7 @@ class PrayerController extends GetxController {
     }
   }
 
-  Future<void> fetchPrayerTimes({int method = 3, int school = 1}) async {
+  Future<void> fetchPrayerTimes({int? method, int? school}) async {
     // Don't fetch if already loading
     if (isLoading.value) {
       if (kDebugMode) {
@@ -62,34 +113,56 @@ class PrayerController extends GetxController {
       return;
     }
     
-    // Check and get location if needed
-    if (_locationController.latitude.value == 0.0 ||
-        _locationController.longitude.value == 0.0) {
-      if (kDebugMode) {
-        print('PrayerController: Location not available, requesting...');
-      }
-      
-      if (!_locationController.hasPermission.value) {
-        await _locationController.checkLocationPermission();
-      }
-      if (_locationController.hasPermission.value) {
-        await _locationController.getCurrentLocation();
-      }
-      
-      // If still no location, return
+    // Get method and school from settings if not provided
+    final prayerMethod = method ?? _settingsController?.selectedMethod.value ?? 3;
+    final prayerSchool = school ?? _settingsController?.selectedSchool.value ?? 1;
+    
+    // Check if using GPS or manual location
+    final useGps = _settingsController?.useGpsLocation.value ?? true;
+    
+    if (useGps) {
+      // Check and get location if needed (GPS mode)
       if (_locationController.latitude.value == 0.0 ||
           _locationController.longitude.value == 0.0) {
         if (kDebugMode) {
-          print('PrayerController: Location still not available after request');
+          print('PrayerController: Location not available, requesting...');
         }
+        
+        if (!_locationController.hasPermission.value) {
+          await _locationController.checkLocationPermission();
+        }
+        if (_locationController.hasPermission.value) {
+          await _locationController.getCurrentLocation();
+        }
+        
+        // If still no location, return
+        if (_locationController.latitude.value == 0.0 ||
+            _locationController.longitude.value == 0.0) {
+          if (kDebugMode) {
+            print('PrayerController: Location still not available after request');
+          }
+          return;
+        }
+      }
+
+      if (!_locationController.hasPermission.value) {
+        errorMessage.value = 'Location permission required';
+        isLoading.value = false;
         return;
       }
-    }
-
-    if (!_locationController.hasPermission.value) {
-      errorMessage.value = 'Location permission required';
-      isLoading.value = false;
-      return;
+    } else {
+      // Manual location mode - check if city is selected
+      if (_settingsController?.selectedCity.value == null) {
+        errorMessage.value = 'Please select a city from settings';
+        isLoading.value = false;
+        return;
+      }
+      
+      // Update location controller with selected city
+      final city = _settingsController!.selectedCity.value!;
+      _locationController.latitude.value = city.latitude;
+      _locationController.longitude.value = city.longitude;
+      _locationController.locationName.value = city.displayName;
     }
 
     try {
@@ -97,14 +170,14 @@ class PrayerController extends GetxController {
       errorMessage.value = '';
 
       if (kDebugMode) {
-        print('PrayerController: Fetching prayer times for lat: ${_locationController.latitude.value}, lon: ${_locationController.longitude.value}');
+        print('PrayerController: Fetching prayer times for lat: ${_locationController.latitude.value}, lon: ${_locationController.longitude.value}, method: $prayerMethod, school: $prayerSchool');
       }
 
       final response = await _repo.fetchPrayerDataApi(
         lat: _locationController.latitude.value,
         lon: _locationController.longitude.value,
-        method: method,
-        school: school,
+        method: prayerMethod,
+        school: prayerSchool,
       );
 
       prayerData.value = response;

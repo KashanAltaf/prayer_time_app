@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:prayer_time_app/controller/navigation_controller.dart';
 import 'package:prayer_time_app/view/home_screen.dart';
 import 'package:prayer_time_app/view/qibla_screen.dart';
+import 'package:prayer_time_app/view/settings_screen.dart';
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
@@ -14,6 +15,7 @@ class MainScreen extends StatelessWidget {
     final screens = [
       const HomeScreen(),
       const QiblaScreen(),
+      const SettingsScreen(),
     ];
 
     return Scaffold(
@@ -33,6 +35,10 @@ class MainScreen extends StatelessWidget {
           BottomNavigationBarItem(
             icon: Icon(Icons.explore),
             label: 'Qibla',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
           ),
         ],
       )),
