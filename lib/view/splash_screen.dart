@@ -7,6 +7,7 @@ import 'package:prayer_time_app/controller/location_controller.dart';
 import 'package:prayer_time_app/controller/prayer_controller.dart';
 import 'package:prayer_time_app/controller/qibla_controller.dart';
 import 'package:prayer_time_app/controller/navigation_controller.dart';
+import 'package:prayer_time_app/controller/prayer_timer_controller.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -16,6 +17,7 @@ class SplashScreen extends StatelessWidget {
     // Initialize controllers
     Get.put(LocationController());
     Get.put(PrayerController());
+    Get.put(PrayerTimerController());
     Get.put(QiblaController());
     Get.put(NavigationController());
 

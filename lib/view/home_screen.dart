@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:prayer_time_app/controller/prayer_controller.dart';
 import 'package:prayer_time_app/controller/location_controller.dart';
+import 'package:prayer_time_app/controller/prayer_timer_controller.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,6 +13,7 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final prayerController = Get.find<PrayerController>();
     final locationController = Get.find<LocationController>();
+    final timerController = Get.find<PrayerTimerController>();
 
     // Request location on first load and trigger prayer fetch
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -81,6 +83,66 @@ class HomeScreen extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
+                      ),
+                    ),
+                    // Countdown timer
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: Get.height * 0.11,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: Get.width * 0.15),
+                        child: Obx(() {
+                          if (!timerController.isInitialized.value) {
+                            return const SizedBox.shrink();
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Time until ${timerController.nextPrayerName.value}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.9),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  timerController.timeRemaining.value,
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 28,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 2,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${timerController.nextPrayerName.value} at ${timerController.nextPrayerTime.value}',
+                                  style: GoogleFonts.poppins(
+                                    fontSize: 11,
+                                    color: Colors.white.withOpacity(0.8),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        }),
                       ),
                     ),
                     Positioned(
